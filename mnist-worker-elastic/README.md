@@ -1,6 +1,6 @@
 # mnist worker elastic
 
-在本样例中，会进行弹性的 mnist 训练，其中 worker 数量会在不同 epoch 之间变化。主要流程为
+在本样例中，会进行弹性的 mnist 训练，其中 worker 数量会在不同 epoch 之间变化。
 
 ## 环境要求
 
