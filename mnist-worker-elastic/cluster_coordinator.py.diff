@@ -6,7 +6,7 @@ index d788733..40c14af 100644
            # Consider adding backoff retry logic if we see the error logged
            # too frequently.
            logging.error("Cluster update failed with error: %s. Retrying...", e)
-+          # Add sleep to prevent constant cluster recovering in fault tolerance.
++          # Add sleep to prevent consistent cluster recovering in fault tolerance.
 +          import time
 +          time.sleep(5)
  
