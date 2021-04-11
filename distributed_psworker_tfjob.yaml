@@ -1,0 +1,37 @@
+apiVersion: "kubeflow.org/v1"
+kind: "TFJob"
+metadata:
+  name: "ps-worker-test"
+spec:
+  cleanPodPolicy: None
+  tfReplicaSpecs:
+    Worker:
+      replicas: 3
+      restartPolicy: Never
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: tensorflow/tensorflow:2.5.0rc0
+              command: ["/bin/bash", "-c", "--"]
+              args: ["sleep 365d"]
+    PS:
+      replicas: 2
+      restartPolicy: Never
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: tensorflow/tensorflow:2.5.0rc0
+              command: ["/bin/bash", "-c", "--"]
+              args: ["sleep 365d"]
+    Chief:
+      replicas: 1
+      restartPolicy: Never
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: tensorflow/tensorflow:2.5.0rc0
+              command: ["/bin/bash", "-c", "--"]
+              args: ["sleep 365d"]
