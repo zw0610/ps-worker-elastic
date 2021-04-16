@@ -1,7 +1,6 @@
 from copy import deepcopy
 from typing import Dict, List, Any
 
-
 import tensorflow as tf
 from tensorflow.python.distribute import distribute_lib
 from tensorflow.python.distribute.coordinator.cluster_coordinator import Worker
@@ -32,7 +31,8 @@ class ClusterCoordinator(
         return self._strategy.cluster_resolver.cluster_spec().as_dict()
 
     def _topology_changes(self, *args, **kwargs) -> bool:
-        new_workers = kwargs["new_workers"] if "new_workers" in kwargs else args[0]
+        new_workers = kwargs[
+            "new_workers"] if "new_workers" in kwargs else args[0]
         return len(new_workers) > 0
 
     def _extract_index_from_worker_name(self, worker_name):
@@ -42,7 +42,8 @@ class ClusterCoordinator(
         new_cluster_spec_dict = self._cluster_spec_dict()
         new_dataset_needed = False
 
-        if is_cluster_spec_dict_equal(self._cached_cluster_spec_dict, new_cluster_spec_dict):
+        if is_cluster_spec_dict_equal(self._cached_cluster_spec_dict,
+                                      new_cluster_spec_dict):
 
             new_replicas: Dict[str, List[str]] = dict()
             gone_replicas: Dict[str, List[str]] = dict()
@@ -59,12 +60,12 @@ class ClusterCoordinator(
             if self._topology_changes(new_workers=new_replicas["worker"]):
                 new_dataset_needed = True
                 new_cluster_spec_dict_copy = deepcopy(new_cluster_spec_dict)
-                new_cluster_spec = tf.train.ClusterSpec(new_cluster_spec_dict_copy)
+                new_cluster_spec = tf.train.ClusterSpec(
+                    new_cluster_spec_dict_copy)
                 print(new_cluster_spec, flush=True)
                 tf.config.experimental_connect_to_cluster(
                     cluster_spec_or_resolver=new_cluster_spec,
-                    job_name="chief"
-                )
+                    job_name="chief")
 
             for gw in gone_replicas["worker"]:
                 index = self._extract_index_from_worker_name(gw)
@@ -79,8 +80,8 @@ class ClusterCoordinator(
                 else:
                     print(f"adding Worker {index}", flush=True)
                     self._cluster.workers.append(
-                        Worker(index, f"/job:worker/replica:0/task:{index}", self._cluster)
-                    )
+                        Worker(index, f"/job:worker/replica:0/task:{index}",
+                               self._cluster))
 
         self._cached_cluster_spec_dict = new_cluster_spec_dict
 
