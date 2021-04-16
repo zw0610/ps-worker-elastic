@@ -1,13 +1,11 @@
 import os
 import time
-from copy import deepcopy
 
 from utils.resolver import TFJobResolver
-from utils.enahcned_coordinator import is_cluster_spec_dict_equal
+from utils.enahcned_coordinator import ClusterCoordinator
 from utils.model import MyModel, get_datasets
 
 import tensorflow as tf
-from tensorflow.python.distribute.coordinator.cluster_coordinator import Worker
 
 os.environ["GRPC_FAIL_FAST"] = "use_caller"
 
@@ -39,6 +37,7 @@ if __name__ == "__main__":
 
         test_loss = tf.keras.metrics.Mean(name='test_loss')
         test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+        metrics_list = [train_loss, train_accuracy, test_loss, test_accuracy]
 
 
     def get_step_fn(comment="", slow_down=0):
@@ -69,8 +68,7 @@ if __name__ == "__main__":
 
 
     # Dispatch to Remote
-    coordinator = tf.distribute.experimental.coordinator.ClusterCoordinator(strategy)
-
+    coordinator = ClusterCoordinator(strategy)
 
     # Must create dataset in this function.
     # Could not use a global function.
@@ -83,6 +81,7 @@ if __name__ == "__main__":
     def per_worker_dataset_fn():
         return strategy.distribute_datasets_from_function(dataset_fn)
 
+
     total_epochs = 10
     total_steps = 300
 
@@ -93,59 +92,21 @@ if __name__ == "__main__":
     per_worker_train_iter = iter(per_worker_train_ds)
 
     for epoch in range(total_epochs):
-        print(f"start epoch {epoch}",flush=True)
+        print(f"start epoch {epoch}", flush=True)
+
         # Reset the metrics at the start of the next epoch
-        train_loss.reset_states()
-        train_accuracy.reset_states()
-        test_loss.reset_states()
-        test_accuracy.reset_states()
+        for metrics in metrics_list:
+            metrics.reset_state()
+
         coordinator.join()
 
-    
         if not last_epoch_succeeded:
-            print("wait for 15 second for pod status updating",flush=True)
+            print("wait for 15 second for pod status updating", flush=True)
             time.sleep(15)
 
-        new_cluster_spec = cluster_resolver.cluster_spec().as_dict()
-        if not is_cluster_spec_dict_equal(cached_cluster_spec, new_cluster_spec):
-            new_workers = [w for w in new_cluster_spec["worker"] if w not in cached_cluster_spec["worker"]]
-            gone_workers = [w for w in cached_cluster_spec["worker"] if w not in new_cluster_spec["worker"]]
-
-            if len(new_workers) > 0:
-                new_cluster_copy = deepcopy(new_cluster_spec)
-            
-                cluster_spec = tf.train.ClusterSpec(
-                    new_cluster_copy
-                )
-
-                print(new_cluster_copy,flush=True)
-
-                tf.config.experimental_connect_to_cluster(
-                    cluster_spec_or_resolver=cluster_spec,
-                    job_name="chief")
-
-
-            for gw in gone_workers:
-                index = int(gw.split(".")[0].split("-")[-1])
-                print(f"stopping Worker {index}",flush=True)
-                coordinator._cluster.workers[index].stop()
-
-            for nw in new_workers:
-                index = int(nw.split(".")[0].split("-")[-1])
-                if index < len(coordinator._cluster.workers):
-                    print(f"restarting Worker {index}",flush=True)
-                    coordinator._cluster.workers[index].restart()
-                else:
-                    print(f"adding Worker {index}",flush=True)
-                    coordinator._cluster.workers.append(
-                        Worker(index, f"/job:worker/replica:0/task:{index}", coordinator._cluster)
-                    )
-
-            if len(new_workers) > 0:
-                per_worker_train_ds = coordinator.create_per_worker_dataset(per_worker_dataset_fn)
-                per_worker_train_iter = iter(per_worker_train_ds)
-
-        cached_cluster_spec = new_cluster_spec
+        if coordinator.need_new_worker_dataset_iter():
+            per_worker_train_ds = coordinator.create_per_worker_dataset(per_worker_dataset_fn)
+            per_worker_train_iter = iter(per_worker_train_ds)
 
         step_fn = get_step_fn(f"{epoch}", slow_down=0)
         for i in range(total_steps):
@@ -156,8 +117,7 @@ if __name__ == "__main__":
             coordinator.join()
         except Exception as e:
             last_epoch_succeeded = False
-            print(e,flush=True)
-            print(f"because of the error, we are aborting the current epoch {epoch}",flush=True)
+            print(f"because of the error {e}, we are aborting the current epoch {epoch}", flush=True)
         else:
             last_epoch_succeeded = True
             train_loss_result = train_loss.result()
