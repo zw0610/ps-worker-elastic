@@ -3,7 +3,7 @@ import time
 from copy import deepcopy
 
 from utils.resolver import TFJobResolver
-from utils.enahcned_coordinator import is_cluster_spec_dict_equal
+from utils.enhanced_coordinator import is_cluster_spec_dict_equal
 from utils.model import MyModel, get_datasets
 
 import tensorflow as tf

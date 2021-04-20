@@ -2,7 +2,7 @@ import os
 import time
 
 from utils.resolver import TFJobResolver
-from utils.enahcned_coordinator import ClusterCoordinator
+from utils.enhanced_coordinator import ClusterCoordinator
 from utils.model import MyModel, get_datasets
 
 import tensorflow as tf
