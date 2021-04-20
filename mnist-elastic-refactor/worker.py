@@ -26,11 +26,10 @@ if __name__ == '__main__':
 
     print(cluster_def)
 
-    server = tf.distribute.Server(
-        cluster_def,
-        job_name=role,
-        task_index=idx,
-        protocol="grpc")
+    server = tf.distribute.Server(cluster_def,
+                                  job_name=role,
+                                  task_index=idx,
+                                  protocol="grpc")
 
     # Blocking the process that starts a server from exiting.
     server.join()
