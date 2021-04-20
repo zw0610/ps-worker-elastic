@@ -1,0 +1,53 @@
+apiVersion: "kubeflow.org/v1"
+kind: "TFJob"
+metadata:
+  name: "ps-worker-test"
+spec:
+  cleanPodPolicy: None
+  tfReplicaSpecs:
+    Worker:
+      replicas: 3
+      restartPolicy: Never
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: ccr.ccs.tencentyun.com/lucas/tensorflow:elastic-patched-0.1.1
+              command: ["/bin/bash", "-c", "--"]
+              args: ["cd /root && python ./worker.py"]
+              env:
+                - name: JOB_NAME
+                  value: ps-worker-test
+                - name: GRPC_FAIL_FAST
+                  value: use_caller
+    PS:
+      replicas: 2
+      restartPolicy: Never
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: ccr.ccs.tencentyun.com/lucas/tensorflow:elastic-patched-0.1.1
+              command: ["/bin/bash", "-c", "--"]
+              args: ["cd /root && python ./worker.py"]
+              env:
+                - name: JOB_NAME
+                  value: ps-worker-test
+                - name: GRPC_FAIL_FAST
+                  value: use_caller
+    Chief:
+      replicas: 1
+      restartPolicy: Never
+      template:
+        spec:
+          containers:
+            - name: tensorflow
+              image: ccr.ccs.tencentyun.com/lucas/tensorflow:elastic-patched-0.1.1
+              command: ["/bin/bash", "-c", "--"]
+              args: ["sleep 365d"]
+              env:
+                - name: JOB_NAME
+                  value: ps-worker-test
+                - name: GRPC_FAIL_FAST
+                  value: use_caller
+
